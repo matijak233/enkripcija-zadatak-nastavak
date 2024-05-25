@@ -22,7 +22,7 @@ def generate_shared_key(private_key, peer_public_key):
 
 
 def encrypt_message(key, message):
-    iv = b'\x00' * 16  # Initialization vector
+    iv = b'\x00' * 16  
     cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
     encryptor = cipher.encryptor()
     padder = padding.PKCS7(128).padder()
@@ -32,7 +32,7 @@ def encrypt_message(key, message):
 
 
 def decrypt_message(ciphertext, key):
-    iv = b'\x00' * 16  # Initialization vector
+    iv = b'\x00' * 16 
     cipher = Cipher(algorithms.AES(key), modes.CFB(iv), backend=default_backend())
     decryptor = cipher.decryptor()
     padded_data = decryptor.update(ciphertext) + decryptor.finalize()
@@ -52,40 +52,37 @@ def generate_symmetric_key(shared_key):
     return kdf.derive(shared_key)
 
 
-# Client setup
+
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = ('localhost', 8000)
 client_socket.connect(server_address)
 
-# Receive server's public key
+
 server_public_key = pickle.loads(client_socket.recv(1024))
 
-# Generate client's keypair
+
 private_key_client, public_key_client = generate_keypair()
 
-# Send client's public key to the server
+
 client_socket.sendall(pickle.dumps(public_key_client))
 
-# Generate shared key
+
 shared_key_client = generate_shared_key(private_key_client, server_public_key)
 
 while True:
-    # Prompt user to enter message
+    
     message = input("Enter message: ")
 
-    # Send message to server
+    
     shared_symmetric_key = generate_symmetric_key(shared_key_client)
     encrypted_message = encrypt_message(shared_symmetric_key)
     client_socket.sendall(encrypted_message)
 
-    # Receive response from server
     encrypted_response = client_socket.recv(1024)
     if not encrypted_response:
         break
 
-    # Decrypt and print response
     decrypted_response = decrypt_message(encrypted_response, shared_symmetric_key)
     print("Received response from server:", decrypted_response.decode())
 
-# Close connection
 client_socket.close()
